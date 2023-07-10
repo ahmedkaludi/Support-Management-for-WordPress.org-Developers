@@ -101,6 +101,8 @@ function wpb_org_active_plugins_function() {
 				} 
 			}
 		}
+	wp_redirect(wp_get_referer());
+
 	}
 	$data = '';
 	$redirect_uri = add_query_arg ('m3_forum_action', 'refresh_list', get_permalink ()) ;
@@ -273,4 +275,4 @@ function wpb_org_active_plugins_function() {
   			</html>';
 	return  $data;
 }
-add_shortcode('wpb_org_active_plugins','wpb_org_active_plugins_function');
+add_shortcode('wp_org_plugins_active_forum','wpb_org_active_plugins_function');
