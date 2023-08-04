@@ -75,12 +75,14 @@ function wpb_org_active_plugins_function() {
 			   		$reolvedTag = 1;
 			   	}
 			   	$brand = $url['brand'];
+			   	$wp_plugin_slug = $url['wp_plugin_slug'];
 
 				$table_name = $wpdb->prefix . 'org_active_forums';
 				$datum = $wpdb->get_results("SELECT * FROM $table_name WHERE title= '".$title."'");
 				
 				if($wpdb->num_rows > 0) {	
-					$wpdb->update( $table_name, array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp),array('title'=>$title));
+					// print_r( array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp));
+					$wpdb->update( $table_name, array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by, 'last_reply_by' => $lastreplie,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp),array('title'=>$title));
 
 				}else{
 					$saved = $wpdb->insert( 
@@ -96,6 +98,7 @@ function wpb_org_active_plugins_function() {
 							'last_reply_by' => $lastreplie,
 							'resolved' => $reolvedTag,
 							'wp_org_ticket_time' => $timestamp,
+							'wp_plugin_slug' =>$wporgurl.$url['url'], 
 						)
 					);
 				} 
@@ -110,6 +113,7 @@ function wpb_org_active_plugins_function() {
 		if(!empty($datum)){
 		$count = 0;
 		foreach ($datum as $values) {	
+
 			$allBrands = ['Magazine3', 'Ahmed Kaludi', 'WPQuads Support', 'SuperPWA', 'GNPublisher', 'Backup For WP', 'Sanjeev Kumar','integratordev'];
 				$delete_ticket = add_query_arg ('deleted_ticket', $values->id, get_permalink ()) ;
 
@@ -120,7 +124,7 @@ function wpb_org_active_plugins_function() {
 			$tableData .= 
 				'<tr >
 					<td><a class="topic-title" href="'.$values->topic_url.'" target="_blank">'.$resolvedTag.$values->title.'</a><br><span class="auther-link">started by : <a target="_blank" href="https://wordpress.org/support/users/'.$values->started_by.'">'.$values->started_by.'</></span></td>
-					<td style="list-style-type:none;">'.$values->brand.'</td>
+					<td style="list-style-type:none;"><a target="_blank" href="'.$values->wp_plugin_slug.'">'.$values->brand.'</a></td>
 					<td style="list-style-type:none;">'.$values->voices.'</td>
 					<td style="list-style-type:none;">'.$values->replies.'</td>
 					<td><a class="topic-title" href="'.$values->topic_url.'" target="_blank" style="font-size: 18px;">'.$values->wp_time_ago.'</a><br><span class="auther-link"><a  target="_blank" href="https://wordpress.org/support/users/'.$values->last_reply_by.'">'.$values->last_reply_by.'</td>
@@ -203,7 +207,7 @@ function wpb_org_active_plugins_function() {
 	
 	<table id="mg3_wp_forum"style="max-width:100%">
 	<p style="text-align:right;    margin-right: 0 !important;"><a href="'.$redirect_uri.'" class="button-forum-refresh">Fetch Feed</a><a href="javascript:void(0);" class="m3_ticket_autoreload"><i class="ref-feed-cog fa fa-cog" aria-hidden="true"></i></a></p>
-	<p class="autoload-input-field-p" style="text-align:right;    margin-right: 0 !important; display:none">Feed Refresh Time: <input class="autoload-input-field" value="" type="text"><button class="auto-refresh-time">Save</button></p>
+	<p class="autoload-input-field-p" style="text-align:right;    margin-right: 0 !important; display:none">Feed Refresh Seconds: <input class="autoload-input-field" value="" type="text" placeholder="Feed Refresh Seconds"><button class="auto-refresh-time">Save</button></p>
 	<tr>
 		<th>Topic ('.$count.')</th>		
 		<th>Plugin</th>		
@@ -226,12 +230,12 @@ function wpb_org_active_plugins_function() {
 				    return false;					 		
 				}
 				jQuery(document).ready(function(){
-					var defaultRefreshTime = 2;
+					var defaultRefreshTime = 120;
 					var cookieTimeformeta = getCookie("m3_wporg_feed_refresh_time");
 					var refreshMeta  = jQuery(".m3-feed-refresh-meta").attr("content");
 					const myArray = refreshMeta.split(";");
 					var autorefreshDefaultTime = myArray[0];
-					jQuery(".autoload-input-field").val(cookieTimeformeta/60);
+					jQuery(".autoload-input-field").val(cookieTimeformeta);
 
 					jQuery(".m3-feed-refresh-meta").attr("content", cookieTimeformeta+"; url="+window.location.origin+"/wp-active-forums");
 
@@ -242,11 +246,14 @@ function wpb_org_active_plugins_function() {
 
 					jQuery("button.auto-refresh-time").click(function(){
 						var mannuVal = jQuery(".autoload-input-field").val();
-						if(mannuVal== ""){
+						if(mannuVal== "" || mannuVal== 0){
 							mannuVal = defaultRefreshTime;
 						}
-						jQuery(".m3-feed-refresh-meta").attr("content", mannuVal*60+"; url="+window.location.origin+"/wp-active-forums")
-						setCookie("m3_wporg_feed_refresh_time", mannuVal*60, 30);						
+						jQuery(".autoload-input-field-p").hide();
+
+						jQuery(".m3-feed-refresh-meta").attr("content", mannuVal+"; url="+window.location.origin+"/wp-active-forums")
+						setCookie("m3_wporg_feed_refresh_time", mannuVal, 30);	
+
 					});
 				});
 
@@ -276,3 +283,103 @@ function wpb_org_active_plugins_function() {
 	return  $data;
 }
 add_shortcode('wp_org_plugins_active_forum','wpb_org_active_plugins_function');
+
+
+
+function my_cron_schedules($schedules){
+    if(!isset($schedules["30min"])){
+        $schedules["30min"] = array(
+            'interval' => 30*60,
+            'display' => __('Once every 30 minutes'));
+    }
+    return $schedules;
+}
+add_filter('cron_schedules','my_cron_schedules');
+
+if (!wp_next_scheduled('my_task_hook')) {
+	wp_schedule_event( time(), '30min', 'my_task_hook' );
+}
+add_action ( 'my_task_hook', 'my_task_function' );
+
+function my_task_function() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'org_active_forums';
+
+		require_once 'simplehtmldom/simple_html_dom.php';
+		$wporgurl = 'https://wordpress.org/support/plugin/';
+
+		$allBrandScrapUrl = [
+			['url' => 'schema-and-structured-data-for-wp/active', 'brand'=> 'SASWP' ],
+			['url' => 'accelerated-mobile-pages/active', 'brand'=> 'AMPFORWP' ],
+			['url' => 'pwa-for-wp/active', 'brand'=> 'PWAFORWP' ],
+			['url' => 'quick-adsense-reloaded/active', 'brand'=> 'WPQuads' ],
+			['url' => 'super-progressive-web-apps/active', 'brand'=> 'SUPERPWA'],
+			['url' => 'gn-publisher/active', 'brand'=> 'GNPublisher'],
+			['url' => 'easy-table-of-contents/active', 'brand'=> 'TOCWP'],
+			['url' => 'wp-database-backup/active', 'brand'=> 'Backupforwp'],
+			['url' => 'fastspring-integration-for-wp/active', 'brand'=> 'FSINTEGRATIONWP'],
+			['url' => 'viator-integration-for-wp/active', 'brand'=> 'ViatorIntegration'],
+			['url' => 'core-web-vitals-pagespeed-booster/active', 'brand'=> 'Core Web Vitals'],
+			['url' => 'ads-for-wp/active', 'brand'=> 'Ads for WP'],
+			['url' => 'amp-blocks/active', 'brand'=> 'AMP Blocks'],
+			['url' => 'push-notification/active', 'brand'=> 'Push Notification'],
+			['url' => 'critical-css-for-wp/active', 'brand'=> 'Critical Css'],
+			['url' => 'super-related-posts/active', 'brand'=> 'Super Related Posts'],
+			['url' => 'web-stories-enhancer/active', 'brand'=> 'Web Stories Enhancer']
+			
+		];
+
+		$singlebrand = [];
+		$allBrandArray = [];
+		foreach ($allBrandScrapUrl as $url) {	
+			$html = file_get_html($wporgurl.$url['url']);
+			foreach($html->find('.topic.type-topic') as $element) {
+			     $title =  $element->find('.bbp-topic-permalink',0)->plaintext;
+			    $title_href =  $element->find('a',0)->href;
+			   	$starte_by = $element->find('.bbp-topic-meta a',0)->plaintext;
+			   	$voice_count = $element->find('.bbp-topic-voice-count',0)->plaintext;
+			   	$replies = $element->find('.bbp-topic-reply-count',0)->plaintext;
+			   	$date = $element->find('.bbp-topic-freshness a',0)->plaintext;
+			   	$timestamp = $element->find('.bbp-topic-freshness a',0)->title;
+			   	$at = ['at', 'am'];
+			   	$radd = ['', ''];
+			   	$wp_org_ticket_time = str_replace($at, $radd , $timestamp);
+			   	$timestamp = date('Y-m-d H:i:s', strtotime($wp_org_ticket_time));
+			   	$lastreplie = $element->find('.bbp-topic-freshness .bbp-topic-meta a',0)->plaintext;
+			   	$reolvedTag = 0;
+			   	if(isset($element->find('.bbp-topic-permalink .resolved',0)->title) && $element->find('.bbp-topic-permalink .resolved',0)->title != null){		   		
+			   		$reolvedTag = 1;
+			   	}
+			   	$brand = $url['brand'];
+			   	$wp_plugin_slug = $url['wp_plugin_slug'];
+
+				$table_name = $wpdb->prefix . 'org_active_forums';
+				$datum = $wpdb->get_results("SELECT * FROM $table_name WHERE title= '".$title."'");
+				
+				if($wpdb->num_rows > 0) {	
+					// print_r( array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp));
+					$wpdb->update( $table_name, array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by, 'last_reply_by' => $lastreplie,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp),array('title'=>$title));
+
+					
+
+				}else{
+					$saved = $wpdb->insert( 
+						$table_name, 
+						array( 
+							'title' => $title, 
+							'brand' => $brand, 
+							'voices' => $voice_count, 
+							'replies' => $replies,  
+							'topic_url' => $title_href,
+							'started_by' => $starte_by,
+							'wp_time_ago' => $date,
+							'last_reply_by' => $lastreplie,
+							'resolved' => $reolvedTag,
+							'wp_org_ticket_time' => $timestamp,
+							'wp_plugin_slug' =>$wporgurl.$url['url'], 
+						)
+					);
+				} 
+			}
+		}
+}
