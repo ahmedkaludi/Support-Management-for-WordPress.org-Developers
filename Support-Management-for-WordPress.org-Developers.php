@@ -7,22 +7,15 @@
 * Author: Developer Mustaq
 * Author URI: https://magazine3.company
 **/
-add_filter( 'page_template', 'wpa3396_page_template' );
-function wpa3396_page_template( $page_template )
-{
-    if ( is_page( 'my-custom-page-slug' ) ) {
-        $page_template = dirname( __FILE__ ) . '/forum-table-shortcode.php';
-    }
-    return $page_template;
-}
+
 
 // function that runs when shortcode is called
-function wpb_org_active_plugins_function() {
+function mg3_wporgforum_active_plugins_function() {
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'org_active_forums';
 
 	if(isset($_GET['deleted_ticket']) && !empty($_GET['deleted_ticket'])) {
-	  $wpdb->update( $table_name, array( 'deleted_ticket'=> 1),array('id'=> $_GET['deleted_ticket']));
+	  $wpdb->update( $table_name, array( 'deleted_ticket'=> 1),array('id'=> intval($_GET['deleted_ticket'])));
 	  wp_redirect(wp_get_referer());
 	}
 
@@ -74,26 +67,38 @@ function wpb_org_active_plugins_function() {
 			   	if(isset($element->find('.bbp-topic-permalink .resolved',0)->title) && $element->find('.bbp-topic-permalink .resolved',0)->title != null){		   		
 			   		$reolvedTag = 1;
 			   	}
-			   	$brand = $url['brand'];
-			   	$wp_plugin_slug = $url['wp_plugin_slug'];
 
+			   	$brand = $url['brand'];
 				$table_name = $wpdb->prefix . 'org_active_forums';
-				$datum = $wpdb->get_results("SELECT * FROM $table_name WHERE title= '".$title."'");
-				
+				$datum = $wpdb->get_results("SELECT * FROM $table_name WHERE title= '".trim($title)."'");
 				if($wpdb->num_rows > 0) {	
 					// print_r( array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp));
-					$wpdb->update( $table_name, array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by, 'last_reply_by' => $lastreplie,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp),array('title'=>$title));
+					$wpdb->update( $table_name, 
+						array( 
+							'voices'=> intval($voice_count),
+							'replies' => intval($replies), 
+							'wp_time_ago' => $date, 
+							'started_by' => $starte_by, 
+							'last_reply_by' => $lastreplie,
+							'resolved' =>  $reolvedTag,
+							'wp_org_ticket_time' => $timestamp
+						),
+						array(
+							'title'=>trim($datum[0]->title)
+						)
+					);
 
 				}else{
 					$saved = $wpdb->insert( 
 						$table_name, 
 						array( 
-							'title' => $title, 
+							'title' => trim($title), 
 							'brand' => $brand, 
-							'voices' => $voice_count, 
-							'replies' => $replies,  
+							'voices' => intval($voice_count), 
+							'replies' => intval($replies),  
 							'topic_url' => $title_href,
 							'started_by' => $starte_by,
+							'deleted_ticket' => 0,
 							'wp_time_ago' => $date,
 							'last_reply_by' => $lastreplie,
 							'resolved' => $reolvedTag,
@@ -107,20 +112,22 @@ function wpb_org_active_plugins_function() {
 	wp_redirect(wp_get_referer());
 
 	}
+
+	$count = 0;
 	$data = '';
+	$tableData='';
 	$redirect_uri = add_query_arg ('m3_forum_action', 'refresh_list', get_permalink ()) ;
 	$datum = $wpdb->get_results("SELECT * FROM $table_name Where deleted_ticket=0 ORDER BY wp_org_ticket_time DESC");
-		if(!empty($datum)){
-		$count = 0;
+		if(!empty($datum)){		
 		foreach ($datum as $values) {	
 
 			$allBrands = ['Magazine3', 'Ahmed Kaludi', 'WPQuads Support', 'SuperPWA', 'GNPublisher', 'Backup For WP', 'Sanjeev Kumar','integratordev'];
-				$delete_ticket = add_query_arg ('deleted_ticket', $values->id, get_permalink ()) ;
 
 			if(in_array(trim($values->last_reply_by ), $allBrands)){
 				continue;	
 			}
 			$resolvedTag = ($values->resolved == 1) ? '<i class="fa fa-check" aria-hidden="true"></i>' : '';			
+			
 			$tableData .= 
 				'<tr >
 					<td><a class="topic-title" href="'.$values->topic_url.'" target="_blank">'.$resolvedTag.$values->title.'</a><br><span class="auther-link">started by : <a target="_blank" href="https://wordpress.org/support/users/'.$values->started_by.'">'.$values->started_by.'</></span></td>
@@ -134,7 +141,7 @@ function wpb_org_active_plugins_function() {
 		}
 		
 	}else{
-		$tableData .= "<tr><<td colspan='5'><p style='text-align:center'>No Active tickets found...</p></td></tr>";
+		$tableData .= "<tr><td colspan='6'><p style='text-align:center'>No Active tickets found...</p></td></tr>";
 	}
 
 	$data .= '<!DOCTYPE html>
@@ -282,7 +289,7 @@ function wpb_org_active_plugins_function() {
   			</html>';
 	return  $data;
 }
-add_shortcode('wp_org_plugins_active_forum','wpb_org_active_plugins_function');
+add_shortcode('wp_org_plugins_active_forum','mg3_wporgforum_active_plugins_function');
 
 
 
@@ -351,35 +358,44 @@ function my_task_function() {
 			   		$reolvedTag = 1;
 			   	}
 			   	$brand = $url['brand'];
-			   	$wp_plugin_slug = $url['wp_plugin_slug'];
-
 				$table_name = $wpdb->prefix . 'org_active_forums';
-				$datum = $wpdb->get_results("SELECT * FROM $table_name WHERE title= '".$title."'");
+				$datum = $wpdb->get_results("SELECT * FROM $table_name WHERE title= '".trim($title)."'");
 				
 				if($wpdb->num_rows > 0) {	
-					// print_r( array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp));
-					$wpdb->update( $table_name, array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by, 'last_reply_by' => $lastreplie,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp),array('title'=>$title));
-
-					
+					$wpdb->update( $table_name, 
+						array( 
+							'voices'=> intval($voice_count),
+							'replies' => intval($replies), 
+							'wp_time_ago' => $date, 
+							'started_by' => $starte_by, 
+							'last_reply_by' => $lastreplie,
+							'resolved' =>  $reolvedTag,
+							'wp_org_ticket_time' => $timestamp
+						),
+						array(
+							'title'=>trim($datum[0]->title)
+						)
+					);
 
 				}else{
 					$saved = $wpdb->insert( 
 						$table_name, 
 						array( 
-							'title' => $title, 
+							'title' => trim($title), 
 							'brand' => $brand, 
-							'voices' => $voice_count, 
-							'replies' => $replies,  
+							'voices' => intval($voice_count), 
+							'replies' => intval($replies),  
 							'topic_url' => $title_href,
 							'started_by' => $starte_by,
 							'wp_time_ago' => $date,
+							'deleted_ticket' => 0,
 							'last_reply_by' => $lastreplie,
 							'resolved' => $reolvedTag,
 							'wp_org_ticket_time' => $timestamp,
 							'wp_plugin_slug' =>$wporgurl.$url['url'], 
 						)
 					);
-				} 
+				}
 			}
 		}
 }
