@@ -42,7 +42,8 @@ function mg3_wporgforum_active_plugins_function() {
 			['url' => 'push-notification/active', 'brand'=> 'Push Notification'],
 			['url' => 'critical-css-for-wp/active', 'brand'=> 'Critical Css'],
 			['url' => 'super-related-posts/active', 'brand'=> 'Super Related Posts'],
-			['url' => 'web-stories-enhancer/active', 'brand'=> 'Web Stories Enhancer']
+			['url' => 'web-stories-enhancer/active', 'brand'=> 'Web Stories Enhancer'],
+			['url' => 'amp-enhancer/active', 'brand'=> 'AMP Enhancer']
 			
 		];
 
@@ -73,13 +74,18 @@ function mg3_wporgforum_active_plugins_function() {
 				$datum = $wpdb->get_results("SELECT * FROM $table_name WHERE title= '".trim($title)."'");
 				if($wpdb->num_rows > 0) {	
 					// print_r( array( 'voices'=> $voice_count,'replies' => $replies, 'wp_time_ago' => $date, 'started_by' => $starte_by,'resolved' => $reolvedTag,'wp_org_ticket_time' => $timestamp));
+					$deleted_ticket = $datum[0]->deleted_ticket;
+					if($timestamp > $datum[0]->wp_org_ticket_time){
+							$deleted_ticket = 0;
+					}
 					$wpdb->update( $table_name, 
 						array( 
 							'voices'=> intval($voice_count),
 							'replies' => intval($replies), 
 							'wp_time_ago' => $date, 
-							'started_by' => $starte_by, 
-							'last_reply_by' => $lastreplie,
+							'started_by' => trim($starte_by), 
+							'deleted_ticket' => intval($deleted_ticket),
+							'last_reply_by' => trim($lastreplie),
 							'resolved' =>  $reolvedTag,
 							'wp_org_ticket_time' => $timestamp
 						),
@@ -121,7 +127,7 @@ function mg3_wporgforum_active_plugins_function() {
 		if(!empty($datum)){		
 		foreach ($datum as $values) {	
 
-			$allBrands = ['Magazine3', 'Ahmed Kaludi', 'WPQuads Support', 'SuperPWA', 'GNPublisher', 'Backup For WP', 'Sanjeev Kumar','integratordev'];
+			$allBrands = ['Magazine3', 'Ahmed Kaludi', 'WPQuads Support', 'SuperPWA', 'GNPublisher', 'Backup For WP', 'Sanjeev Kumar','integratordev', 'AMP Enhancer'];
 
 			if(in_array(trim($values->last_reply_by ), $allBrands)){
 				continue;	
@@ -332,7 +338,8 @@ function my_task_function() {
 			['url' => 'push-notification/active', 'brand'=> 'Push Notification'],
 			['url' => 'critical-css-for-wp/active', 'brand'=> 'Critical Css'],
 			['url' => 'super-related-posts/active', 'brand'=> 'Super Related Posts'],
-			['url' => 'web-stories-enhancer/active', 'brand'=> 'Web Stories Enhancer']
+			['url' => 'web-stories-enhancer/active', 'brand'=> 'Web Stories Enhancer'],
+			['url' => 'amp-enhancer/active', 'brand'=> 'AMP Enhancer']
 			
 		];
 
